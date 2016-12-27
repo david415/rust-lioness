@@ -22,6 +22,10 @@ pub const STREAM_CIPHER_KEY_SIZE: usize = 32;
 pub const RAW_KEY_SIZE: usize = 2*STREAM_CIPHER_KEY_SIZE + 2*DIGEST_KEY_SIZE;
 const CHACHA20_NONCE_SIZE: usize = 8;
 
+pub struct LionessKey<'a> {
+    pub material: &'a [u8; RAW_KEY_SIZE],
+}
+
 /// Adapt a given `crypto::digest::Digest` to Lioness.
 pub trait DigestLioness: Digest {
     fn new_digestlioness(k: &[u8]) -> Self;
@@ -205,6 +209,42 @@ impl<H,SC> Lioness<H,SC>
     /// Given a key, create a new Lioness cipher
     pub fn new_raw(key: &[u8; 2*STREAM_CIPHER_KEY_SIZE + 2*DIGEST_KEY_SIZE]) -> Lioness<H,SC> {
         let (k1,k2,k3,k4) = array_refs![key,STREAM_CIPHER_KEY_SIZE,DIGEST_KEY_SIZE,STREAM_CIPHER_KEY_SIZE,DIGEST_KEY_SIZE];
+        Lioness {
+            _k1: *k1,
+            _k2: *k2,
+            _k3: *k3,
+            _k4: *k4,
+            h: std::marker::PhantomData,
+            sc: std::marker::PhantomData,
+        }
+    }
+
+    /// # Example
+    ///
+    /// ```
+    /// extern crate crypto;
+    /// extern crate lioness;
+    /// extern crate rustc_serialize;
+    /// use self::rustc_serialize::hex::FromHex;
+    /// use self::lioness::{Lioness, LionessKey, RAW_KEY_SIZE};
+    /// use crypto::chacha20::ChaCha20;
+    /// use crypto::blake2b::Blake2b;
+    /// # #[macro_use] extern crate arrayref; fn main() {
+    ///
+    /// let key = "e98e0e3f28311995e8448e6dc1de73159e800c8184a7846418347f4490f063e372\
+    /// 6eebda84e02f2cc218bd6c6e9a9b801e8d8899e8f5b6dcd23bf7ca7f11641c584cd9568f045e9\
+    /// ad92c59275f67b9bed7f02bb23e28c0b8e56fbb634d60a6d1eae7145e53a4442dda40ae37b2e2\
+    /// e1f97ae495c8ce0166605d4f1ea91f139159229f208c69362095d8d8e00d7b4c9ca5603dc8b87\
+    /// 50b0eb500670858ca7983a8760be307ff3e5c05f22799cb60d7c57fe3fc8b980aa65e89e3ac0a\
+    /// c147af7deb".from_hex().unwrap();
+    /// let lioness_key = LionessKey{
+    ///   material: array_ref!(&key, 0, RAW_KEY_SIZE),
+    /// };
+    /// let cipher = Lioness::<Blake2b,ChaCha20>::new(lioness_key);
+    /// }
+    /// ```
+    pub fn new(key: LionessKey) -> Lioness<H,SC> {
+        let (k1,k2,k3,k4) = array_refs![key.material,STREAM_CIPHER_KEY_SIZE,DIGEST_KEY_SIZE,STREAM_CIPHER_KEY_SIZE,DIGEST_KEY_SIZE];
         Lioness {
             _k1: *k1,
             _k2: *k2,
