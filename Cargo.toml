@@ -11,6 +11,7 @@ keywords = ["cryptography","cipher","lioness", "sphinx", "mixnet"]
 license = "MIT"
 
 [dependencies]
+rustc-serialize = "0.3.24"
 rust-crypto = "^0.2"
 arrayref = "^0.3"
 
