@@ -1,6 +1,6 @@
 [package]
 name = "lioness"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Jeffrey Burdges <burdges@gnunet.org>", "David Stainton <dstainton415@gmail.com>"]
 description = "Lioness wide block cipher"
 homepage = "https://github.com/burdges/lioness-rs"
