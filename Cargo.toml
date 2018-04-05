@@ -1,6 +1,6 @@
 [package]
 name = "lioness"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Jeffrey Burdges <burdges@gnunet.org>", "David Stainton <dstainton415@gmail.com>"]
 description = "Lioness wide block cipher"
 homepage = "https://github.com/burdges/lioness-rs"
@@ -8,12 +8,12 @@ repository = "https://github.com/burdges/lioness-rs.git"
 documentation = "https://docs.rs/lioness/"
 readme = "README.md"
 keywords = ["cryptography","cipher","lioness", "sphinx", "mixnet"]
-license = "MIT"
+license = "MIT/Apache-2.0"
 
 [dependencies]
 rustc-serialize = "0.3.24"
 rust-crypto = "^0.2"
-arrayref = "^0.3"
+arrayref = "^0.3.4"
 
 [dev-dependencies]
 rand = "^0.3"
