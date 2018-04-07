@@ -47,7 +47,7 @@ This crate works with Cargo and is on crates.io https://crates.io/crates/rust-li
 Add it to your `Cargo.toml` with::
 
     [dependencies]
-    rust-lioness = "^0.1.2"
+    rust-lioness = "^0.1.3"
 
 Use the crate like::
 
