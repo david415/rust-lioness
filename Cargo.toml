@@ -1,5 +1,5 @@
 [package]
-name = "lioness"
+name = "rust-lioness"
 version = "0.1.2"
 authors = ["Jeffrey Burdges <burdges@gnunet.org>", "David Stainton <dstainton415@gmail.com>"]
 description = "Lioness wide block cipher"
