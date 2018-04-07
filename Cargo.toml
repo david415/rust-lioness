@@ -3,10 +3,10 @@ name = "rust-lioness"
 version = "0.1.3"
 authors = ["Jeffrey Burdges <burdges@gnunet.org>", "David Stainton <dstainton415@gmail.com>"]
 description = "Lioness wide block cipher"
-homepage = "https://github.com/burdges/lioness-rs"
-repository = "https://github.com/burdges/lioness-rs.git"
-documentation = "https://docs.rs/lioness/"
-readme = "README.md"
+homepage = "https://github.com/david415/rust-lioness"
+repository = "https://github.com/david415/rust-lioness.git"
+documentation = "https://docs.rs/rust-lioness/"
+readme = "README.rst"
 keywords = ["cryptography","cipher","lioness", "sphinx", "mixnet"]
 license = "MIT/Apache-2.0"
 
