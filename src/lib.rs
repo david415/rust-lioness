@@ -4,14 +4,13 @@
 
 #[macro_use]
 extern crate arrayref;
-extern crate crypto;
-extern crate rustc_serialize as serialize;
+extern crate chacha;
+extern crate blake2b;
+extern crate keystream;
 
-
-use crypto::digest::Digest;
-use crypto::blake2b::Blake2b;
-use crypto::symmetriccipher::SynchronousStreamCipher;
-use crypto::chacha20::ChaCha20;
+use self::keystream::KeyStream;
+use self::chacha::ChaCha as ChaCha20;
+use self::blake2b::blake2b_keyed;
 
 pub mod error;
 pub use error::LionessError;
@@ -40,7 +39,6 @@ pub const IV_SIZE: usize = CHACHA20_NONCE_SIZE * 4;
 /// * `LionessError::BlockSizeError` - returned if block size is too small
 ///
 pub fn encrypt(key: &[u8; RAW_KEY_SIZE], iv: &[u8; IV_SIZE], dst: &mut [u8], src: &[u8]) -> Result<(), LionessError> {
-    let mut hr = [0u8; DIGEST_RESULT_SIZE];
     let mut k = [0u8; STREAM_CIPHER_KEY_SIZE];
     let keylen = std::mem::size_of_val(&k);
 
@@ -59,34 +57,29 @@ pub fn encrypt(key: &[u8; RAW_KEY_SIZE], iv: &[u8; IV_SIZE], dst: &mut [u8], src
     let mut tmp_right = Vec::with_capacity(blocklen-keylen);
     for _ in 0..blocklen-keylen { tmp_right.push(0u8); }
 
+    // R = ChaCha20(L ^ k1, iv1, R)
+    xor(&left, k1, &mut k);
+    let mut sc = ChaCha20::new_ietf(&k, iv1);
+    sc.xor_read(right.as_mut_slice()).unwrap();
+
+    // L = L ^ BLAKE2b(k2 | iv2, R)
     let mut v = Vec::new();
     v.extend_from_slice(k2);
     v.extend_from_slice(iv2);
-    let mut h = Blake2b::new_keyed(DIGEST_RESULT_SIZE, &v);
-
-    // R = ChaCha20(L ^ k1, iv1, R)
-    xor(&left, k1, &mut k);
-    let mut sc = ChaCha20::new(&k, iv1);
-    sc.process(&right, &mut tmp_right);
-
-    // L = L ^ BLAKE2b(k2 | iv2, R)
-    h.input(&tmp_right);
-    h.result(&mut hr);
-    xor_assign(left.as_mut_slice(), &hr);
+    let hash = blake2b_keyed(DIGEST_RESULT_SIZE, &v, &right);
+    xor_assign(left.as_mut_slice(), &hash);
 
     // R = ChaCha20(L ^ k3, iv3, R)
     xor(&left, k3, &mut k);
-    let mut sc = ChaCha20::new(&k, iv3);
-    sc.process(&tmp_right, right.as_mut_slice());
+    let mut sc = ChaCha20::new_ietf(&k, iv3);
+    sc.xor_read(right.as_mut_slice()).unwrap();
 
     // L ^ BLAKE2b(k4 | iv4, R)
     let mut v = Vec::new();
     v.extend_from_slice(k4);
     v.extend_from_slice(iv4);
-    let mut h = Blake2b::new_keyed(DIGEST_RESULT_SIZE, &v);
-    h.input(&right);
-    h.result(&mut hr);
-    xor_assign(left.as_mut_slice(), &hr);
+    let hash = blake2b_keyed(DIGEST_RESULT_SIZE, &v, &right);
+    xor_assign(left.as_mut_slice(), &hash);
 
     dst[0..left.len()].clone_from_slice(&left);
     dst[left.len()..].clone_from_slice(&right);
@@ -108,7 +101,6 @@ pub fn encrypt(key: &[u8; RAW_KEY_SIZE], iv: &[u8; IV_SIZE], dst: &mut [u8], src
 /// * `LionessError::BlockSizeError` - returned if block size is too small
 ///
 pub fn decrypt(key: &[u8; RAW_KEY_SIZE], iv: &[u8; IV_SIZE], dst: &mut [u8], src: &[u8]) -> Result<(), LionessError> {
-    let mut hr = [0u8; DIGEST_RESULT_SIZE];
     let mut k = [0u8; STREAM_CIPHER_KEY_SIZE];
     let keylen = std::mem::size_of_val(&k);
 
@@ -127,34 +119,29 @@ pub fn decrypt(key: &[u8; RAW_KEY_SIZE], iv: &[u8; IV_SIZE], dst: &mut [u8], src
     let mut tmp_right = Vec::with_capacity(blocklen-keylen);
     for _ in 0..blocklen-keylen { tmp_right.push(0u8); }
 
+    // L = L ^ BLAKE2b(k4 | iv4, R)
     let mut v = Vec::new();
     v.extend_from_slice(k4);
     v.extend_from_slice(iv4);
-    let mut h = Blake2b::new_keyed(DIGEST_RESULT_SIZE, &v);
-
-    // L = L ^ BLAKE2b(k4 | iv4, R)
-    h.input(&right);
-    h.result(&mut hr);
-    xor_assign(left.as_mut_slice(), &hr);
+    let hash = blake2b_keyed(DIGEST_RESULT_SIZE, &v, &right);
+    xor_assign(left.as_mut_slice(), &hash);
 
     // R = ChaCha20(L ^ k3, iv3, R)
     xor(&left, k3, &mut k);
-    let mut sc = ChaCha20::new(&k, iv3);
-    sc.process(&right, &mut tmp_right);
+    let mut sc = ChaCha20::new_ietf(&k, iv3);
+    sc.xor_read(right.as_mut_slice()).unwrap();
 
     // L = L ^ BLAKE2b(k2 | iv2, R)
     let mut v = Vec::new();
     v.extend_from_slice(k2);
     v.extend_from_slice(iv2);
-    let mut h = Blake2b::new_keyed(DIGEST_RESULT_SIZE, &v);
-    h.input(&tmp_right);
-    h.result(&mut hr);
-    xor_assign(left.as_mut_slice(), &hr);
+    let hash = blake2b_keyed(DIGEST_RESULT_SIZE, &v, &right);
+    xor_assign(left.as_mut_slice(), &hash);
 
     // R = ChaCha20(L ^ k1, iv1, R)
     xor(&left, k1, &mut k);
-    let mut sc = ChaCha20::new(&k, iv1);
-    sc.process(&tmp_right, right.as_mut_slice());
+    let mut sc = ChaCha20::new_ietf(&k, iv1);
+    sc.xor_read(right.as_mut_slice()).unwrap();
 
     dst[..left.len()].clone_from_slice(&left);
     dst[left.len()..].clone_from_slice(&right);
