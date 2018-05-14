@@ -6,7 +6,7 @@ description = "Lioness wide block cipher"
 homepage = "https://github.com/david415/rust-lioness"
 repository = "https://github.com/david415/rust-lioness.git"
 documentation = "https://docs.rs/rust-lioness/"
-readme = "README.rst"
+readme = "README.md"
 keywords = ["cryptography","cipher","lioness", "sphinx", "mixnet"]
 license = "MIT/Apache-2.0"
 
